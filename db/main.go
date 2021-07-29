@@ -41,8 +41,7 @@ func Newdb() *sql.DB {
 // queryPg 查询
 func queryPg(db *sql.DB) {
 
-	//rows, _ := db.Query("select * from orders;")
-	rows, _ := db.Query("select count('dx_address') from miner where 'dx_address' is not null and 'dx_address' <> '' and 'bridge_instance_id' is not null;")
+	rows, _ := db.Query("select * from orders;")
 	defer rows.Close()
 
 	for rows.Next() {
@@ -126,23 +125,7 @@ func dbDemo() {
 	//txPg(db)
 
 }
-func getMinerAddrCount() int {
-	var c int
-	pg := Newdb()
-	defer pg.Close()
-	//rows, err := pg.Query("select count('dx_address') from miner where 'dx_address' is not null and 'dx_address' <> '' and 'bridge_instance_id' is not null;")
-	//
-	//CheckErr(err)
-	//defer rows.Close()
-	//for rows.Next() {
-	//	rows.Scan(&c)
-	//}
 
-	_ = pg.QueryRow("select count('dx_address') from miner where 'dx_address' is not null and 'dx_address' <> '' and 'bridge_instance_id' is not null;").Scan(&c)
-
-	return c
-}
 func main() {
 	//dbDemo()
-	fmt.Println(getMinerAddrCount())
 }
