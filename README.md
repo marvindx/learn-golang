@@ -669,10 +669,135 @@ func main() {
 
 ---
 
-### reflect
+### reflect 反射
+Go语言提供了一种机制在运行时更新和检查变量的值、调用变量的方法和变量支持的内在操作，但是在编译时并不知道这些变量的具体类型，这种机制被称为反射。反射也可以让我们将类型本身作为第一类的值类型处理。
 
+反射是指在程序运行期对程序本身进行访问和修改的能力，程序在编译时变量被转换为内存地址，变量名不会被编译器写入到可执行部分，在运行程序时程序无法获取自身的信息。
 
+支持反射的语言可以在程序编译期将变量的反射信息，如字段名称、类型信息、结构体信息等整合到可执行文件中，并给程序提供接口访问反射信息，这样就可以在程序运行期获取类型的反射信息，并且有能力修改它们。
 
+Go语言提供了 reflect 包来访问程序的反射信息。
+
+* **反射的类型Type和种类Kind**
+
+Go语言程序中的类型（Type）指的是系统原生数据类型，如 int、string、bool、float32 等类型，以及使用 type 关键字定义的类型，这些类型的名称就是其类型本身的名称。 例如使用 type A struct{} 定义结构体时，A 就是 struct{} 的类型。
+
+种类（Kind）指的是归属对象的品种，在`reflect`包中有如下定义：
+```go
+type Kind uint
+const (
+    Invalid Kind = iota  // 非法类型
+    Bool                 // 布尔型
+    Int                  // 有符号整型
+    Int8                 // 有符号8位整型
+    Int16                // 有符号16位整型
+    Int32                // 有符号32位整型
+    Int64                // 有符号64位整型
+    Uint                 // 无符号整型
+    Uint8                // 无符号8位整型
+    Uint16               // 无符号16位整型
+    Uint32               // 无符号32位整型
+    Uint64               // 无符号64位整型
+    Uintptr              // 指针
+    Float32              // 单精度浮点数
+    Float64              // 双精度浮点数
+    Complex64            // 64位复数类型
+    Complex128           // 128位复数类型
+    Array                // 数组
+    Chan                 // 通道
+    Func                 // 函数
+    Interface            // 接口
+    Map                  // 映射
+    Ptr                  // 指针
+    Slice                // 切片
+    String               // 字符串
+    Struct               // 结构体
+    UnsafePointer        // 底层指针
+)
+```
+
+* **获取变量的Type和Kind**
+```go
+type intAlias int
+var (
+    i  int      = 1
+    ia intAlias = 2
+)
+
+typeOfI := reflect.TypeOf(i)
+typeOfIa := reflect.TypeOf(ia)
+
+// Name() 表层类型名
+// Kind() 类型实际种类
+// Align() 变量内存中占用字节数
+fmt.Println(typeOfI.Name(), typeOfI.Kind(), typeOfI.Align())    // int int 8
+fmt.Println(typeOfIa.Name(), typeOfIa.Kind(), typeOfIa.Align()) // intAlias int 8
+```
+
+* **指针和指针指向的元素**
+```go
+type Cat struct {
+	Name string
+	Age  int `json:"age"`
+}
+c := Cat{
+    Name: "kitty",
+    Age:  2,
+}
+typeOfC := reflect.TypeOf(c)
+// Cat type name:  Cat , Cat type kind:  struct
+fmt.Println("Cat type name: ", typeOfC.Name(), ", Cat type kind: ", typeOfC.Kind())
+
+cPtr := &Cat{}
+typeOfCptr := reflect.TypeOf(cPtr)
+// Cat Ptr type name: , Cat Ptr type kind: ptr
+fmt.Printf("Cat Ptr type name: %v, Cat Ptr type kind: %v\n", typeOfCptr.Name(), typeOfCptr.Kind())
+
+// 对指针类型进行类型反射, Elem()进行了取指针的操作
+typeOfCptr = typeOfCptr.Elem()
+// Cat Ptr type name: Cat, Cat Ptr type kind: struct
+fmt.Printf("Cat Ptr type name: %v, Cat Ptr type kind: %v\n", typeOfCptr.Name(), typeOfCptr.Kind())
+```
+
+* **使用反射获取结构体的成员类型**
+```go
+type StructField struct {
+    // Name is the field name.
+    Name string
+    // PkgPath is the package path that qualifies a lower case (unexported)
+    // field name. It is empty for upper case (exported) field names.
+    // See https://golang.org/ref/spec#Uniqueness_of_identifiers
+    PkgPath string
+    
+    Type      Type      // field type
+    Tag       StructTag // field tag string
+    Offset    uintptr   // offset within struct, in bytes
+    Index     []int     // index sequence for Type.FieldByIndex
+    Anonymous bool      // is an embedded field
+}
+```
+```go
+// 获取结构体内部的元素的类型信息
+/*
+    name: Name, tag:
+    name: Age, tag: json:"age"
+*/
+for i := 0; i < typeOfC.NumField(); i++ {
+    // 获取内部元素的类型，返回 StructField
+    fieldType := typeOfC.Field(i)
+    fmt.Printf("name: %v, tag: %v\n", fieldType.Name, fieldType.Tag)
+}
+// 通过字段名找到字段类型信息，返回 StructField
+// Cat age tag of json:  age
+if catAge, ok := typeOfC.FieldByName("Age"); ok {
+    fmt.Println("Cat age tag of json: ", catAge.Tag.Get("json"))
+}
+
+// 另一种办法：获取结构体内部元素的kind
+typeOfCName := reflect.TypeOf(c.Name)
+// Cat's Name type:  string , Cat's Name kind:  string
+fmt.Println("Cat's Name type: ", typeOfCName.Name(), ", Cat's Name kind: ", typeOfCName.Kind())
+```
 
 
 
