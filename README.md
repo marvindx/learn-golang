@@ -1,8 +1,6 @@
 # learn-golang
 
-# Golang
-
-### 导入包的找寻顺序
+## 导入包的找寻顺序
 
 编译器会首先查找 Go 的安装目录，然后才会按顺序查找 GOPATH 变量里列出的目录
 
@@ -13,7 +11,7 @@
 
 ---
 
-### 切片
+## 切片
 
 `s1 := s2[起始索引 : 结束索引（不包含） : 容量截止索引​]`
 
@@ -60,7 +58,7 @@ fmt.Println(s9, len(s9), cap(s9))    // [1, 2, 3, 4] 4 4
 
 ---
 
-### new 和 make 的区别
+## new 和 make 的区别
 
 * make 只能用来分配及初始化类型为 slice、map、chan 的数据。new 可以分配任意类型的数据；
 * new 分配返回的是指针，即类型 *Type。make 返回引用，即 Type；
@@ -70,12 +68,12 @@ fmt.Println(s9, len(s9), cap(s9))    // [1, 2, 3, 4] 4 4
 
 ---
 
-### map映射
+## map映射
 
 
 ---
 
-### openfile常见模式和权限
+## openfile常见模式和权限
 
 ```go
 file, err := os.OpenFile("log.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, os.ModePerm)
@@ -147,7 +145,7 @@ const (
 
 ---
 
-### Golang异常
+## Golang异常
 
 `panic` 主动抛出异常，和`raise`效果相同
 
@@ -190,7 +188,7 @@ func recoverTest() {
 
 ---
 
-### fmt
+## fmt
 
 * `print`：打印后不换行
 * `println`：打印后换行
@@ -251,7 +249,7 @@ func main() {
 
 ---
 
-### sync.Pool
+## sync.Pool
 
 我们通常用golang来构建高并发场景下的应用，但是由于golang内建的GC机制会影响应用的性能，为了减少GC，golang提供了对象重用的机制，也就是sync.Pool对象池。 sync.Pool是可伸缩的，并发安全的。其大小仅受限于内存的大小，可以被看作是一个存放可重用对象的值的容器。 设计的目的是存放已经分配的但是暂时不用的对象，在需要用到的时候直接从pool中取。
 
@@ -307,7 +305,7 @@ func main() {
 
 ---
 
-### time
+## time
 
 ```go
 package main
@@ -404,7 +402,7 @@ func main() {
 
 ---
 
-### 随机数rand
+## 随机数rand
 
 ```go
 rand.Intn(n int) return int
@@ -414,7 +412,7 @@ rand.Intn(n int) return int
 
 ---
 
-### testing
+## testing
 
 * **基础单元测试** `go test -v`
 
@@ -498,7 +496,7 @@ func BenchmarkIntMin(b *testing.B) {
 
 ---
 
-### pg
+## pg
 
 ```go
 package main
@@ -635,7 +633,7 @@ func dbDemo() {
 
 ---
 
-### ... 用法
+## ... 用法
 
 * 可以接受不定数量相同类型的参数，相当于切片
 * 切片被打散进行传递
@@ -671,7 +669,7 @@ func main() {
 
 ---
 
-### reflect 反射
+## reflect 反射
 Go语言提供了一种机制在运行时更新和检查变量的值、调用变量的方法和变量支持的内在操作，但是在编译时并不知道这些变量的具体类型，这种机制被称为反射。反射也可以让我们将类型本身作为第一类的值类型处理。
 
 反射是指在程序运行期对程序本身进行访问和修改的能力，程序在编译时变量被转换为内存地址，变量名不会被编译器写入到可执行部分，在运行程序时程序无法获取自身的信息。
@@ -801,7 +799,7 @@ typeOfCName := reflect.TypeOf(c.Name)
 fmt.Println("Cat's Name type: ", typeOfCName.Name(), ", Cat's Name kind: ", typeOfCName.Kind())
 ```
 
-### hex、byte、string之间的转化
+## hex、byte、string之间的转化
 ```go
 package main
 
@@ -869,10 +867,174 @@ func ExampleDecodeString() {
 }
 ```
 ---
+## leveldb
+LevelDB是google开发的，一个速度非常块的KV存储库（storage library），它支持字符串的key与字符串的value，并且这种映射关系按key排序（ordered mapping）。
 
+leveldb: https://github.com/google/leveldb/blob/master/doc/index.md
 
+goleveldb: https://github.com/syndtr/goleveldb
 
+**打开/创建leveldb**
+```go
+// 打开或者创建一个leveldb实例
+db, err := leveldb.OpenFile("leveldb/exampledb", nil)
+if err != nil {
+    panic(err)
+}
+defer db.Close()
+```
+**增删改查**
+```go
+// 读取数据, 不存在的k-v值读取为[]byte("")
+data, err := db.Get([]byte("key"), nil) // return ([]byte, error)
+fmt.Println(string(data))
 
+// 更新、插入数据
+err = db.Put([]byte("key"), []byte("value"), nil) // return error
+if err != nil {
+    panic(err)
+}
+
+// 删除数据, 允许删除不存在的k-v
+err = db.Delete([]byte("key1"), nil) // return error
+err = db.Delete([]byte("key"), nil)
+if err != nil {
+    panic(err)
+}
+
+// clear 删除全部元素
+func clear(db *leveldb.DB) error {
+	iter := db.NewIterator(nil, nil)
+	for iter.Next() {
+		if err := db.Delete(iter.Key(), nil); err != nil {
+			return err
+		}
+	}
+	iter.Release()
+	if err := iter.Error(); err != nil {
+		return err
+	}
+	return nil
+}
+```
+**迭代与查询**
+```go
+_ = clear(db)
+err = db.Put([]byte("1"), []byte("1"), nil)
+err = db.Put([]byte("2"), []byte("2"), nil)
+err = db.Put([]byte("3"), []byte("3"), nil)
+err = db.Put([]byte("4"), []byte("4"), nil)
+
+// 迭代 leveldb
+iter := db.NewIterator(nil, nil)
+
+// iter.Next() 迭代器游标后移 return bool
+for iter.Next() {
+    key := iter.Key()
+    value := iter.Value()
+    fmt.Printf("%s -> %s\n", key, value)
+}
+
+ok := iter.First()                            // 迭代器游标移动到第一个  return bool
+ok = iter.Last()                              // 迭代器游标移动到最后一个
+ok = iter.Prev()                              // 迭代器游标移动到上一个
+ok = iter.Next()                              // 迭代器游标移动到下一个
+ok = iter.Seek([]byte("3"))                   // 迭代器游标移动到指定元素
+fmt.Printf("seek 3 %t, %s\n", ok, iter.Key()) // seek 3 true, 3
+ok = iter.Seek([]byte("8"))
+fmt.Printf("seek 8 %t, %s\n", ok, iter.Key()) // seek 8 false,
+iter.Prev()
+fmt.Println(string(iter.Key())) // 4
+
+// 修改数据对db数据生效，对iter数据不生效，iter游标释放后，iter提交更改
+_ = db.Put([]byte("1"), []byte("one"), nil)
+ok = iter.Seek([]byte("1"))
+fmt.Printf("seek 1 %t, value %s\n", ok, iter.Value()) // seek 1 true, value 1
+data, err = db.Get([]byte("1"), nil)
+fmt.Printf("Get data key 1 , value %s\n", data) // Get data key 1 , value one
+
+iter.Release() // 释放游标
+if err = iter.Error(); err != nil {
+    panic(err)
+}
+```
+**根据前缀prefix查询**
+```go
+_ = clear(db)
+err = db.Put([]byte("1-1"), []byte("1-1"), nil)
+err = db.Put([]byte("1-2"), []byte("1-2"), nil)
+err = db.Put([]byte("1-3"), []byte("1-3"), nil)
+err = db.Put([]byte("2"), []byte("2"), nil)
+err = db.Put([]byte("3"), []byte("3"), nil)
+
+// 根据前缀prefix迭代查询
+iter = db.NewIterator(util.BytesPrefix([]byte("1")), nil)
+for iter.Next() {
+    fmt.Printf("%s -> %s\n", iter.Key(), iter.Value())
+}
+iter.Release()
+```
+**子集查询**
+```go
+_ = clear(db)
+err = db.Put([]byte("1-1"), []byte("1-1"), nil)
+err = db.Put([]byte("1-2"), []byte("1-2"), nil)
+err = db.Put([]byte("1-3"), []byte("1-3"), nil)
+err = db.Put([]byte("1-3-1"), []byte("1-3-1"), nil)
+err = db.Put([]byte("2"), []byte("2"), nil)
+err = db.Put([]byte("3"), []byte("3"), nil)
+
+// 子集查询 key in [start, limit)
+iter = db.NewIterator(&util.Range{
+    Start: []byte("1-"),
+    Limit: []byte("2"),
+}, nil)
+for iter.Next() {
+    fmt.Printf("%s -> %s\n", iter.Key(), iter.Value())
+}
+iter.Release()
+```
+**批处理操作**
+```go
+_ = clear(db)
+// 批量操作
+batch := new(leveldb.Batch)
+batch.Put([]byte("1"), []byte("1"))
+batch.Put([]byte("2"), []byte("2"))
+batch.Put([]byte("3"), []byte("3"))
+batch.Put([]byte("3"), []byte("4"))
+batch.Delete([]byte("2"))
+// 写入db
+if err = db.Write(batch, nil); err != nil {
+    panic(err)
+}
+iter = db.NewIterator(nil, nil)
+for iter.Next() {
+    fmt.Printf("%s -> %s\n", iter.Key(), iter.Value())
+}
+```
+**leveldb快照**
+
+```go
+// leveldb 快照（具备db相同的方法）
+snap, err := db.GetSnapshot()
+if err != nil {
+    panic(err)
+}
+snap.Release() // 使用snapshot的release方法释放
+```
+**使用bloom filter**
+```go
+// 使用bloom filter，减少硬盘访问频率
+o := &opt.Options{
+    Filter: filter.NewBloomFilter(10),
+}
+db, err = leveldb.OpenFile("path/to/db", o)
+if err != nil {
+    panic(err)
+}
+defer db.Close()
+```
 
 
 
